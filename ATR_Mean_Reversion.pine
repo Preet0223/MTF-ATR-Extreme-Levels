@@ -1,0 +1,319 @@
+//@version=6
+indicator("Multi-Timeframe ATR Mean Reversion Levels", overlay=true, scale=scale.right)
+
+// Input parameters
+ema_period = input.int(20, "EMA Period", minval=1)
+atr_period = input.int(14, "ATR Period", minval=1)
+
+// ATR Multipliers for each level
+atr_mult_l1 = input.float(0.5, "Level 1 ATR Multiplier", step=0.1)
+atr_mult_l2 = input.float(1.0, "Level 2 ATR Multiplier", step=0.1)
+atr_mult_l3 = input.float(1.5, "Level 3 ATR Multiplier", step=0.1)
+atr_mult_l4 = input.float(2.0, "Level 4 ATR Multiplier", step=0.1)
+
+// Enable/Disable Current Timeframe Levels
+show_level1 = input.bool(true, "Show Current TF Level 1")
+show_level2 = input.bool(true, "Show Current TF Level 2")
+show_level3 = input.bool(true, "Show Current TF Level 3")
+show_level4 = input.bool(true, "Show Current TF Level 4")
+
+// Enable/Disable Timeframes for Multi-Timeframe Analysis
+show_1d = input.bool(true, "Show 1D Timeframe")
+show_4h = input.bool(true, "Show 4H Timeframe")
+show_1h = input.bool(true, "Show 1H Timeframe")
+show_30m = input.bool(true, "Show 30M Timeframe")
+show_15m = input.bool(true, "Show 15M Timeframe")
+show_5m = input.bool(true, "Show 5M Timeframe")
+
+// Enable/Disable Levels for Multi-Timeframe Analysis
+mtf_show_l1 = input.bool(true, "MTF Show Level 1")
+mtf_show_l2 = input.bool(true, "MTF Show Level 2")
+mtf_show_l3 = input.bool(true, "MTF Show Level 3")
+mtf_show_l4 = input.bool(true, "MTF Show Level 4")
+
+// Visual settings
+show_labels = input.bool(true, "Show Level Labels")
+show_mtf_table = input.bool(true, "Show Multi-Timeframe Table")
+
+// Color inputs
+ema_color = input.color(color.orange, "EMA Color")
+upper_l1_color = input.color(color.new(color.red, 70), "Upper Level 1 Color")
+upper_l2_color = input.color(color.new(color.red, 60), "Upper Level 2 Color")
+upper_l3_color = input.color(color.new(color.red, 50), "Upper Level 3 Color")
+upper_l4_color = input.color(color.new(color.red, 40), "Upper Level 4 Color")
+lower_l1_color = input.color(color.new(color.green, 70), "Lower Level 1 Color")
+lower_l2_color = input.color(color.new(color.green, 60), "Lower Level 2 Color")
+lower_l3_color = input.color(color.new(color.green, 50), "Lower Level 3 Color")
+lower_l4_color = input.color(color.new(color.green, 40), "Lower Level 4 Color")
+
+// Calculate current timeframe EMA and ATR
+ema = ta.ema(close, ema_period)
+atr = ta.atr(atr_period)
+
+// Calculate current timeframe ATR-based deviation levels
+upper_l1_atr = ema + (atr * atr_mult_l1)
+upper_l2_atr = ema + (atr * atr_mult_l2)
+upper_l3_atr = ema + (atr * atr_mult_l3)
+upper_l4_atr = ema + (atr * atr_mult_l4)
+
+lower_l1_atr = ema - (atr * atr_mult_l1)
+lower_l2_atr = ema - (atr * atr_mult_l2)
+lower_l3_atr = ema - (atr * atr_mult_l3)
+lower_l4_atr = ema - (atr * atr_mult_l4)
+
+// Plot current timeframe EMA
+plot(ema, "EMA", color=ema_color, linewidth=2)
+
+// Plot current timeframe ATR-based levels
+plot(show_level1 ? upper_l1_atr : na, "Upper L1 (ATR)", color=upper_l1_color, linewidth=1, style=plot.style_line)
+plot(show_level2 ? upper_l2_atr : na, "Upper L2 (ATR)", color=upper_l2_color, linewidth=1, style=plot.style_line)
+plot(show_level3 ? upper_l3_atr : na, "Upper L3 (ATR)", color=upper_l3_color, linewidth=1, style=plot.style_line)
+plot(show_level4 ? upper_l4_atr : na, "Upper L4 (ATR)", color=upper_l4_color, linewidth=1, style=plot.style_line)
+
+plot(show_level1 ? lower_l1_atr : na, "Lower L1 (ATR)", color=lower_l1_color, linewidth=1, style=plot.style_line)
+plot(show_level2 ? lower_l2_atr : na, "Lower L2 (ATR)", color=lower_l2_color, linewidth=1, style=plot.style_line)
+plot(show_level3 ? lower_l3_atr : na, "Lower L3 (ATR)", color=lower_l3_color, linewidth=1, style=plot.style_line)
+plot(show_level4 ? lower_l4_atr : na, "Lower L4 (ATR)", color=lower_l4_color, linewidth=1, style=plot.style_line)
+
+// Calculate percentage distances for current timeframe labels
+upper_l1_pct = (upper_l1_atr - ema) / ema * 100
+upper_l2_pct = (upper_l2_atr - ema) / ema * 100
+upper_l3_pct = (upper_l3_atr - ema) / ema * 100
+upper_l4_pct = (upper_l4_atr - ema) / ema * 100
+
+// Add current timeframe level labels
+if show_labels and barstate.islast
+    if show_level1
+        label.new(bar_index + 5, upper_l1_atr, "L1: " + str.tostring(upper_l1_pct, "#.##") + "%", 
+                 color=color.new(color.white, 100), textcolor=upper_l1_color, style=label.style_label_left, size=size.small)
+        label.new(bar_index + 5, lower_l1_atr, "L1: " + str.tostring(upper_l1_pct, "#.##") + "%", 
+                 color=color.new(color.white, 100), textcolor=lower_l1_color, style=label.style_label_left, size=size.small)
+    
+    if show_level2
+        label.new(bar_index + 5, upper_l2_atr, "L2: " + str.tostring(upper_l2_pct, "#.##") + "%", 
+                 color=color.new(color.white, 100), textcolor=upper_l2_color, style=label.style_label_left, size=size.small)
+        label.new(bar_index + 5, lower_l2_atr, "L2: " + str.tostring(upper_l2_pct, "#.##") + "%", 
+                 color=color.new(color.white, 100), textcolor=lower_l2_color, style=label.style_label_left, size=size.small)
+    
+    if show_level3
+        label.new(bar_index + 5, upper_l3_atr, "L3: " + str.tostring(upper_l3_pct, "#.##") + "%", 
+                 color=color.new(color.white, 100), textcolor=upper_l3_color, style=label.style_label_left, size=size.small)
+        label.new(bar_index + 5, lower_l3_atr, "L3: " + str.tostring(upper_l3_pct, "#.##") + "%", 
+                 color=color.new(color.white, 100), textcolor=lower_l3_color, style=label.style_label_left, size=size.small)
+    
+    if show_level4
+        label.new(bar_index + 5, upper_l4_atr, "L4: " + str.tostring(upper_l4_pct, "#.##") + "%", 
+                 color=color.new(color.white, 100), textcolor=upper_l4_color, style=label.style_label_left, size=size.small)
+        label.new(bar_index + 5, lower_l4_atr, "L4: " + str.tostring(upper_l4_pct, "#.##") + "%", 
+                 color=color.new(color.white, 100), textcolor=lower_l4_color, style=label.style_label_left, size=size.small)
+
+// Multi-timeframe level calculations
+get_mtf_levels(tf) =>
+    mtf_ema = request.security(syminfo.tickerid, tf, ta.ema(close, ema_period))
+    mtf_atr = request.security(syminfo.tickerid, tf, ta.atr(atr_period))
+    
+    mtf_upper_l1 = mtf_ema + (mtf_atr * atr_mult_l1)
+    mtf_upper_l2 = mtf_ema + (mtf_atr * atr_mult_l2)
+    mtf_upper_l3 = mtf_ema + (mtf_atr * atr_mult_l3)
+    mtf_upper_l4 = mtf_ema + (mtf_atr * atr_mult_l4)
+    
+    mtf_lower_l1 = mtf_ema - (mtf_atr * atr_mult_l1)
+    mtf_lower_l2 = mtf_ema - (mtf_atr * atr_mult_l2)
+    mtf_lower_l3 = mtf_ema - (mtf_atr * atr_mult_l3)
+    mtf_lower_l4 = mtf_ema - (mtf_atr * atr_mult_l4)
+    
+    [mtf_upper_l1, mtf_upper_l2, mtf_upper_l3, mtf_upper_l4, mtf_lower_l1, mtf_lower_l2, mtf_lower_l3, mtf_lower_l4]
+
+// Function to determine which levels are active based on current price
+get_active_levels(price, upper_l1, upper_l2, upper_l3, upper_l4, lower_l1, lower_l2, lower_l3, lower_l4) =>
+    l1_active = false
+    l2_active = false
+    l3_active = false
+    l4_active = false
+    
+    // Check upper levels
+    if price >= upper_l4
+        l1_active := true
+        l2_active := true
+        l3_active := true
+        l4_active := true
+    else if price >= upper_l3
+        l1_active := true
+        l2_active := true
+        l3_active := true
+    else if price >= upper_l2
+        l1_active := true
+        l2_active := true
+    else if price >= upper_l1
+        l1_active := true
+    
+    // Check lower levels
+    if price <= lower_l4
+        l1_active := true
+        l2_active := true
+        l3_active := true
+        l4_active := true
+    else if price <= lower_l3
+        l1_active := true
+        l2_active := true
+        l3_active := true
+    else if price <= lower_l2
+        l1_active := true
+        l2_active := true
+    else if price <= lower_l1
+        l1_active := true
+    
+    [l1_active, l2_active, l3_active, l4_active]
+
+// Get multi-timeframe data
+[d1_ul1, d1_ul2, d1_ul3, d1_ul4, d1_ll1, d1_ll2, d1_ll3, d1_ll4] = get_mtf_levels("1D")
+[h4_ul1, h4_ul2, h4_ul3, h4_ul4, h4_ll1, h4_ll2, h4_ll3, h4_ll4] = get_mtf_levels("240")
+[h1_ul1, h1_ul2, h1_ul3, h1_ul4, h1_ll1, h1_ll2, h1_ll3, h1_ll4] = get_mtf_levels("60")
+[m30_ul1, m30_ul2, m30_ul3, m30_ul4, m30_ll1, m30_ll2, m30_ll3, m30_ll4] = get_mtf_levels("30")
+[m15_ul1, m15_ul2, m15_ul3, m15_ul4, m15_ll1, m15_ll2, m15_ll3, m15_ll4] = get_mtf_levels("15")
+[m5_ul1, m5_ul2, m5_ul3, m5_ul4, m5_ll1, m5_ll2, m5_ll3, m5_ll4] = get_mtf_levels("5")
+
+// Get active levels for each timeframe
+[d1_l1, d1_l2, d1_l3, d1_l4] = get_active_levels(close, d1_ul1, d1_ul2, d1_ul3, d1_ul4, d1_ll1, d1_ll2, d1_ll3, d1_ll4)
+[h4_l1, h4_l2, h4_l3, h4_l4] = get_active_levels(close, h4_ul1, h4_ul2, h4_ul3, h4_ul4, h4_ll1, h4_ll2, h4_ll3, h4_ll4)
+[h1_l1, h1_l2, h1_l3, h1_l4] = get_active_levels(close, h1_ul1, h1_ul2, h1_ul3, h1_ul4, h1_ll1, h1_ll2, h1_ll3, h1_ll4)
+[m30_l1, m30_l2, m30_l3, m30_l4] = get_active_levels(close, m30_ul1, m30_ul2, m30_ul3, m30_ul4, m30_ll1, m30_ll2, m30_ll3, m30_ll4)
+[m15_l1, m15_l2, m15_l3, m15_l4] = get_active_levels(close, m15_ul1, m15_ul2, m15_ul3, m15_ul4, m15_ll1, m15_ll2, m15_ll3, m15_ll4)
+[m5_l1, m5_l2, m5_l3, m5_l4] = get_active_levels(close, m5_ul1, m5_ul2, m5_ul3, m5_ul4, m5_ll1, m5_ll2, m5_ll3, m5_ll4)
+
+// Create multi-timeframe table
+if show_mtf_table
+    // Count active timeframes and levels for dynamic table sizing
+    tf_count = (show_1d ? 1 : 0) + (show_4h ? 1 : 0) + (show_1h ? 1 : 0) + (show_30m ? 1 : 0) + (show_15m ? 1 : 0) + (show_5m ? 1 : 0)
+    level_count = (mtf_show_l1 ? 1 : 0) + (mtf_show_l2 ? 1 : 0) + (mtf_show_l3 ? 1 : 0) + (mtf_show_l4 ? 1 : 0)
+    
+    if tf_count > 0 and level_count > 0
+        var table mtfTable = table.new(position.top_right, level_count + 1, tf_count + 1, bgcolor=color.new(color.black, 85))
+        
+        if barstate.islast
+            row = 0
+            
+            // Header row
+            table.cell(mtfTable, 0, row, "TF", text_color=color.white, text_size=size.small, bgcolor=color.new(color.gray, 50))
+            col = 1
+            if mtf_show_l1
+                table.cell(mtfTable, col, row, "L1", text_color=color.white, text_size=size.small, bgcolor=color.new(color.gray, 50))
+                col += 1
+            if mtf_show_l2
+                table.cell(mtfTable, col, row, "L2", text_color=color.white, text_size=size.small, bgcolor=color.new(color.gray, 50))
+                col += 1
+            if mtf_show_l3
+                table.cell(mtfTable, col, row, "L3", text_color=color.white, text_size=size.small, bgcolor=color.new(color.gray, 50))
+                col += 1
+            if mtf_show_l4
+                table.cell(mtfTable, col, row, "L4", text_color=color.white, text_size=size.small, bgcolor=color.new(color.gray, 50))
+                col += 1
+            
+            row += 1
+            
+            // Data rows
+            if show_1d
+                table.cell(mtfTable, 0, row, "1D", text_color=color.white, text_size=size.small)
+                col := 1
+                if mtf_show_l1
+                    table.cell(mtfTable, col, row, d1_l1 ? "✓" : "", text_color=d1_l1 ? color.lime : color.gray, text_size=size.small)
+                    col += 1
+                if mtf_show_l2
+                    table.cell(mtfTable, col, row, d1_l2 ? "✓" : "", text_color=d1_l2 ? color.lime : color.gray, text_size=size.small)
+                    col += 1
+                if mtf_show_l3
+                    table.cell(mtfTable, col, row, d1_l3 ? "✓" : "", text_color=d1_l3 ? color.lime : color.gray, text_size=size.small)
+                    col += 1
+                if mtf_show_l4
+                    table.cell(mtfTable, col, row, d1_l4 ? "✓" : "", text_color=d1_l4 ? color.lime : color.gray, text_size=size.small)
+                row += 1
+            
+            if show_4h
+                table.cell(mtfTable, 0, row, "4H", text_color=color.white, text_size=size.small)
+                col := 1
+                if mtf_show_l1
+                    table.cell(mtfTable, col, row, h4_l1 ? "✓" : "", text_color=h4_l1 ? color.lime : color.gray, text_size=size.small)
+                    col += 1
+                if mtf_show_l2
+                    table.cell(mtfTable, col, row, h4_l2 ? "✓" : "", text_color=h4_l2 ? color.lime : color.gray, text_size=size.small)
+                    col += 1
+                if mtf_show_l3
+                    table.cell(mtfTable, col, row, h4_l3 ? "✓" : "", text_color=h4_l3 ? color.lime : color.gray, text_size=size.small)
+                    col += 1
+                if mtf_show_l4
+                    table.cell(mtfTable, col, row, h4_l4 ? "✓" : "", text_color=h4_l4 ? color.lime : color.gray, text_size=size.small)
+                row += 1
+            
+            if show_1h
+                table.cell(mtfTable, 0, row, "1H", text_color=color.white, text_size=size.small)
+                col := 1
+                if mtf_show_l1
+                    table.cell(mtfTable, col, row, h1_l1 ? "✓" : "", text_color=h1_l1 ? color.lime : color.gray, text_size=size.small)
+                    col += 1
+                if mtf_show_l2
+                    table.cell(mtfTable, col, row, h1_l2 ? "✓" : "", text_color=h1_l2 ? color.lime : color.gray, text_size=size.small)
+                    col += 1
+                if mtf_show_l3
+                    table.cell(mtfTable, col, row, h1_l3 ? "✓" : "", text_color=h1_l3 ? color.lime : color.gray, text_size=size.small)
+                    col += 1
+                if mtf_show_l4
+                    table.cell(mtfTable, col, row, h1_l4 ? "✓" : "", text_color=h1_l4 ? color.lime : color.gray, text_size=size.small)
+                row += 1
+            
+            if show_30m
+                table.cell(mtfTable, 0, row, "30M", text_color=color.white, text_size=size.small)
+                col := 1
+                if mtf_show_l1
+                    table.cell(mtfTable, col, row, m30_l1 ? "✓" : "", text_color=m30_l1 ? color.lime : color.gray, text_size=size.small)
+                    col += 1
+                if mtf_show_l2
+                    table.cell(mtfTable, col, row, m30_l2 ? "✓" : "", text_color=m30_l2 ? color.lime : color.gray, text_size=size.small)
+                    col += 1
+                if mtf_show_l3
+                    table.cell(mtfTable, col, row, m30_l3 ? "✓" : "", text_color=m30_l3 ? color.lime : color.gray, text_size=size.small)
+                    col += 1
+                if mtf_show_l4
+                    table.cell(mtfTable, col, row, m30_l4 ? "✓" : "", text_color=m30_l4 ? color.lime : color.gray, text_size=size.small)
+                row += 1
+            
+            if show_15m
+                table.cell(mtfTable, 0, row, "15M", text_color=color.white, text_size=size.small)
+                col := 1
+                if mtf_show_l1
+                    table.cell(mtfTable, col, row, m15_l1 ? "✓" : "", text_color=m15_l1 ? color.lime : color.gray, text_size=size.small)
+                    col += 1
+                if mtf_show_l2
+                    table.cell(mtfTable, col, row, m15_l2 ? "✓" : "", text_color=m15_l2 ? color.lime : color.gray, text_size=size.small)
+                    col += 1
+                if mtf_show_l3
+                    table.cell(mtfTable, col, row, m15_l3 ? "✓" : "", text_color=m15_l3 ? color.lime : color.gray, text_size=size.small)
+                    col += 1
+                if mtf_show_l4
+                    table.cell(mtfTable, col, row, m15_l4 ? "✓" : "", text_color=m15_l4 ? color.lime : color.gray, text_size=size.small)
+                row += 1
+            
+            if show_5m
+                table.cell(mtfTable, 0, row, "5M", text_color=color.white, text_size=size.small)
+                col := 1
+                if mtf_show_l1
+                    table.cell(mtfTable, col, row, m5_l1 ? "✓" : "", text_color=m5_l1 ? color.lime : color.gray, text_size=size.small)
+                    col += 1
+                if mtf_show_l2
+                    table.cell(mtfTable, col, row, m5_l2 ? "✓" : "", text_color=m5_l2 ? color.lime : color.gray, text_size=size.small)
+                    col += 1
+                if mtf_show_l3
+                    table.cell(mtfTable, col, row, m5_l3 ? "✓" : "", text_color=m5_l3 ? color.lime : color.gray, text_size=size.small)
+                    col += 1
+                if mtf_show_l4
+                    table.cell(mtfTable, col, row, m5_l4 ? "✓" : "", text_color=m5_l4 ? color.lime : color.gray, text_size=size.small)
+
+// Add alerts for level touches
+alertcondition(ta.crossover(high, upper_l1_atr) or ta.crossunder(low, lower_l1_atr), 
+               title="Level 1 Touch", message="Price touched Level 1")
+alertcondition(ta.crossover(high, upper_l2_atr) or ta.crossunder(low, lower_l2_atr), 
+               title="Level 2 Touch", message="Price touched Level 2")
+alertcondition(ta.crossover(high, upper_l3_atr) or ta.crossunder(low, lower_l3_atr), 
+               title="Level 3 Touch", message="Price touched Level 3")
+alertcondition(ta.crossover(high, upper_l4_atr) or ta.crossunder(low, lower_l4_atr), 
+               title="Level 4 Touch", message="Price touched Level 4")
+
